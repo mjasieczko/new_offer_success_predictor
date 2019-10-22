@@ -1,0 +1,24 @@
+Predict New Offer Success
+There is a company, which prepared special new offer for their customers. They have a dataset which consists information about their clients and how they reacted to the previous offers.
+
+Objectives
+Your goal is to help them with current offer to provide list of customers who will accept new offer and also senior management would like to know why company should send them this new offer.
+
+Dataset, columns business meaning
+Target feature
+accepted - flag related whether customer accepted or not the offer
+
+Input features
+offer_class - previous offer class. e.g:
+name - hashed customer name
+gender - customer geneder
+age - age in years
+phone_calls - number of phone conversations with client during last quarter
+emails - number of emails sent to client during last 6 months
+customer_code - customer code
+salary - customer estimated salary
+offer_code - previous offer code
+customer_type - type of customer
+number - serial number of customer device
+offer_value - previous offers total value
+estimated_expenses - estimated expenses

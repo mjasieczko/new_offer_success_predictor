@@ -1,0 +1,5 @@
+#PyCharm idea files
+.idea/
+
+#Jupyter NB Checkpoints
+.ipynb_checkpoints/
