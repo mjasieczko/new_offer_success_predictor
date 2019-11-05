@@ -27,5 +27,6 @@ provide list of probabilities for customers on who will accept new offer
 <br> `pip install plotly` <- for more fancy EDA (data scientist friendly)
 <br> `pip install catboost`
 <br> `pip install xgboost`
+<br> `pip install category_encoders`
 
 <br> requirements were generated using pip freeze > requirements.txt
