@@ -4,20 +4,18 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 
-def create_train_test(local_path: Path = Path('/Users/mjasiecz/PycharmProjects/'),
-                      project_path: Path = Path('new_offer_success_predictor/data/raw/'),
-                      filename: str = 'client_database',
-                      suffix: str = '.parquet',
-                      csv_suffix: str = '.csv') -> None:
+def load_data(local_path: Path = Path('/Users/mjasiecz/PycharmProjects/'),
+              project_path: Path = Path('new_offer_success_predictor/data/raw/'),
+              filename: str = 'client_database',
+              suffix: str = '.parquet') -> pd.DataFrame:
     """
-    Splits DataFrame to train/test datasets.
 
     :param local_path: path to the local folder, you probably will need to change at least mjasiecz
     part
     :param project_path: path to project raw data
     :param filename: name of the file with raw data
     :param suffix: suffix of this file
-    :param csv_suffix: suffix of the resulting df's
+    :return: loaded DataFrame with raw data
     """
 
     data_path = (local_path
@@ -26,6 +24,26 @@ def create_train_test(local_path: Path = Path('/Users/mjasiecz/PycharmProjects/'
                  .with_suffix(suffix))
 
     df = pd.read_parquet(data_path, engine='pyarrow')
+
+    return df
+
+
+def create_train_test(df: pd.DataFrame = None,
+                      local_path: Path = Path('/Users/mjasiecz/PycharmProjects/'),
+                      project_path: Path = Path('new_offer_success_predictor/data/raw/'),
+                      csv_suffix: str = '.csv') -> None:
+    """
+    Splits DataFrame to train/test datasets.
+
+    :param df: df with the raw data
+    :param local_path: path to the local folder, you probably will need to change at least mjasiecz
+    part
+    :param project_path: path to project raw data
+    :param csv_suffix: suffix of the resulting df's
+    """
+
+    if not df:
+        df = load_data()
 
     train_dataset = (local_path
                      .joinpath(project_path)
