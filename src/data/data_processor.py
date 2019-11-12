@@ -15,13 +15,15 @@ class DataProcessor:
     - performs initial features engineering
     """
 
-    def __init__(self, train_df: pd.DataFrame) -> None:
+    def __init__(self,
+                 train_df: pd.DataFrame) -> None:
         """
         :param train_df: training DataFrame
         """
         self.df = train_df.copy(deep=True)
 
-    def missing_information(self, percentage: bool = False) -> pd.Series:
+    def missing_information(self,
+                            percentage: bool = False) -> pd.Series:
         """
         shows us information about missing data
 
@@ -86,7 +88,8 @@ class DataProcessor:
         df.loc[df['salary'] == 0, 'salary'] = 0.0001
         return df['salary']
 
-    def _prepare_to_knn(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _prepare_to_knn(self,
+                        df: pd.DataFrame) -> pd.DataFrame:
         """
         prepares data for knn imputing (of missing data)
         for training data uses also labels to give more information then to test set
@@ -101,7 +104,8 @@ class DataProcessor:
         knn_to_complete = pd.concat([temp, df[groups['numerical'] + groups['age']]], axis=1)
         return knn_to_complete
 
-    def deal_with_missing_values(self, n_neighbors: int = 5) -> pd.DataFrame:
+    def deal_with_missing_values(self,
+                                 n_neighbors: int = 5) -> pd.DataFrame:
         """
         :param n_neighbors: number of neighbours for knn algorithm
         :return: returns DataFrame with filled nans (also, leaves unchanged 'age' column ->
@@ -218,7 +222,7 @@ class DataProcessor:
         processed = pd.concat([log_subset, scaled], axis=1)
         return processed
 
-    def perform_initial_features_engineering(self):
+    def perform_initial_features_engineering(self) -> pd.DataFrame:
         """
         performs initial feature engineering (without encoding -> will be done as individual part
         due to some maintenance issues (how to cross validate target encoding?)
@@ -248,7 +252,11 @@ class TestDataProcessor(DataProcessor):
     DataProcessor adapted to test set needs
     """
 
-    def __init__(self, not_processed_train_df, processed_train_df, test_df, sneaky_peaky=True):
+    def __init__(self,
+                 not_processed_train_df,
+                 processed_train_df,
+                 test_df,
+                 sneaky_peaky=True) -> None:
         """
         :param not_processed_train_df: self explanatory
         :param processed_train_df: self explanatory
@@ -261,9 +269,9 @@ class TestDataProcessor(DataProcessor):
         DataProcessor.__init__(self, not_processed_train_df)
 
         if sneaky_peaky:
-            self.df['age'] = self.df['knn_age']
-            self.df['estimated_expenses'] = self.df['knn_estimated_expenses']
-            self.df['offer_value'] = self.df['knn_offer_value']
+            self.df['age'] = processed_train_df['age_knn']
+            self.df['estimated_expenses'] = processed_train_df['estimated_expenses_knn']
+            self.df['offer_value'] = processed_train_df['offer_value_knn']
         self.df = (pd
                    .concat([self
                            .df
@@ -273,7 +281,7 @@ class TestDataProcessor(DataProcessor):
         self.train_len = len(processed_train_df)
         self.df = pd.concat([self.df, test_df], axis=0).copy(deep=True)
 
-    def perform_initial_features_engineering(self):
+    def perform_initial_features_engineering(self) -> pd.DataFrame:
         """
         performs initial features engineering on test set
         """
@@ -281,11 +289,6 @@ class TestDataProcessor(DataProcessor):
         df = df[self.train_len:]
 
         return df
-
-
-
-
-
 
 
 
