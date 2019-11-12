@@ -28,6 +28,8 @@ provide list of probabilities for customers on who will accept new offer
 <br> `pip install catboost`
 <br> `pip install xgboost`
 <br> `pip install category_encoders`
+<br> `pip install missingno`
+<br> `pip install fancyimpute`
 
 <br> requirements were generated using pip freeze > requirements.txt
 

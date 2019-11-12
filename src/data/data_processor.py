@@ -1,0 +1,223 @@
+import itertools
+from collections import defaultdict
+
+import numpy as np
+import pandas as pd
+from fancyimpute import KNN
+from sklearn.preprocessing import StandardScaler
+
+
+class DataProcessor:
+    """
+    """
+
+    def __init__(self, train_df: pd.DataFrame) -> None:
+        """
+
+        :param train_df:
+        """
+        self.df = train_df.copy(deep=True)
+
+    def missing_information(self, percentage: bool = False) -> pd.Series:
+        """
+
+        :param percentage:
+        :return:
+        """
+        df_shape = self.df.shape
+        print(f'df.shape: {df_shape}')
+        is_null_sum = self.df.isnull().sum()
+        missing_information = (is_null_sum
+                               if not percentage
+                               else (is_null_sum / df_shape[0] * 100).round(2))
+        return missing_information
+
+    @staticmethod
+    def _group_columns():
+        """
+
+        :return:
+        """
+        groups = defaultdict()
+        groups['age'] = ['age']
+        groups['emails_and_phone_calls'] = ['emails', 'phone_calls']
+        groups['low_cardinality'] = ['offer_class', 'gender', 'customer_type', 'center']
+        groups['high_cardinality'] = ['customer_code', 'offer_code', 'number']
+        groups['numerical'] = ['salary', 'offer_value', 'estimated_expenses']
+        groups['target'] = ['accepted']
+        return groups
+
+    @staticmethod
+    def _missing_salary(df: pd.DataFrame):
+        """
+
+        :param df:
+        :return:
+        """
+        df = df.copy(deep=True)
+        df['salary_temp'] = df['salary'].fillna(0.1)
+        mask = ['customer_type', 'customer_code', 'salary_temp']
+        temp = (df[mask]
+                .groupby(mask)
+                .size()
+                .reset_index()
+                .rename(columns={0: 'size'}))
+        temp = (temp[temp
+            .duplicated(subset=['customer_code', 'customer_type'],
+                        keep=False)][['customer_code', 'salary_temp']])
+        temp = temp[temp['salary_temp'] != 0.1]
+        temp = temp.set_index('customer_code')['salary_temp']
+        salary_map = temp.to_dict()
+        df['salary'] = (df['salary']
+                        .fillna(df['customer_code']
+                                .map(salary_map)))
+        temp = (df[['customer_type', 'salary']]
+                .groupby('customer_type')
+                .median())
+        temp = temp['salary']
+        salary_map = temp.to_dict()
+        df['salary'] = (df['salary']
+                        .fillna(df['customer_type']
+                                .map(salary_map)))
+        # to be able to np.log('salary')
+        df.loc[df['salary'] == 0, 'salary'] = 0.0001
+        return df['salary']
+
+    def _prepare_to_knn(self, df: pd.DataFrame):
+        """
+
+        :param df:
+        :return:
+        """
+        df = df.copy(deep=True)
+        temp = pd.get_dummies(df['gender'])
+        groups = self._group_columns()
+        if 'accepted' in df.columns:
+            temp = pd.concat([pd.get_dummies(df['accepted']), temp], axis=1)
+        for col in itertools.chain(groups['emails_and_phone_calls'], groups['low_cardinality']):
+            temp = pd.concat([pd.get_dummies(df[col]), temp], axis=1)
+        knn_to_complete = pd.concat([temp, df[groups['numerical'] + groups['age']]], axis=1)
+        return knn_to_complete
+
+    def deal_with_missing_values(self, n_neighbors: int = 5):
+        """
+
+        :param n_neighbors:
+        :return:
+        """
+        df = self.df.copy(deep=True)
+        groups = self._group_columns()
+        for col in groups['high_cardinality']:
+            df[col] = df[col].fillna('missing')
+
+        def _prt_process_emails_and_phone_calls(emails_phone_calls_df: pd.DataFrame):
+            """
+
+            :param emails_phone_calls_df:
+            :return:
+            """
+            emails_phone_calls_df.loc[emails_phone_calls_df['emails'] > 4, 'emails'] = 5
+            emails_phone_calls_df.loc[emails_phone_calls_df['phone_calls'] > 3, 'phone_calls'] = 4
+            return emails_phone_calls_df
+
+        for col in groups['emails_and_phone_calls']:
+            df[col] = df[col].fillna(round(df[col].mean()))
+
+        df = _prt_process_emails_and_phone_calls(df)
+
+        for col in groups['low_cardinality']:
+            df[col] = df[col].fillna(method='ffill')
+        df['salary'] = self._missing_salary(df)
+        temp = (df[groups['emails_and_phone_calls']
+                   + groups['age']
+                   + groups['low_cardinality']
+                   + groups['numerical']])
+        knn_unfilled_table = self._prepare_to_knn(temp)
+        knn_filled = (KNN(k=n_neighbors,
+                         print_interval=1032)
+                      .fit_transform(knn_unfilled_table
+                                     .to_numpy()))
+        knn_imputed_cols = ['age_knn', 'estimated_expenses_knn', 'offer_value_knn']
+        for col in knn_imputed_cols:
+            df[col] = knn_filled[:, -knn_imputed_cols.index(col) - 1]
+        df = df.drop(columns=['offer_value', 'estimated_expenses'])
+        return df
+
+    @staticmethod
+    def _process_age(age_df: pd.DataFrame) -> pd.DataFrame:
+        """
+
+        :param age_df:
+        :return:
+        """
+        age_df = age_df.copy(deep=True)
+        age_df['nan_age'] = age_df['age'].isna()
+        age_df['not_nan_age'] = age_df['age'].notna()
+        return age_df[['nan_age', 'not_nan_age']]
+
+    @staticmethod
+    def _process_target(target_df: pd.DataFrame) -> pd.DataFrame:
+        """
+
+        :param target_df:
+        :return:
+        """
+        target = target_df['accepted'] == 'yes'
+        return target
+
+    @staticmethod
+    def _process_high_cardinality_categorical_cols(high_cardinal_df: pd.DataFrame) -> pd.DataFrame:
+        """
+
+        :param high_cardinal_df:
+        :return:
+        """
+        pass
+
+    @staticmethod
+    def _process_numerical_cols(numerical_df: pd.DataFrame) -> pd.DataFrame:
+        """
+
+        :param numerical_df:
+        :return:
+        """
+        numeric_cols = [col for col in numerical_df.columns if numerical_df[col].dtype != object]
+        numeric_cols.remove('age')
+        temp = numerical_df[numeric_cols]
+        scaler = StandardScaler()
+        for col in numeric_cols:
+            temp['log_' + col] = np.log(temp[col])
+        log_cols = [col for col in temp.columns if col not in numerical_df.columns]
+        log_subset = temp[log_cols]
+        temp_subset = temp[numeric_cols]
+        scaled = scaler.fit_transform(temp_subset)
+        scaled = pd.DataFrame(scaled, columns='scaled_' + temp_subset.columns, index=temp.index)
+        processed = pd.concat([log_subset, scaled], axis=1)
+        return processed
+
+    def perform_initial_features_engineering(self):
+        """
+
+        :return:
+        """
+        groups = self._group_columns()
+        df = self.deal_with_missing_values().copy(deep=True)
+        for col in groups['emails_and_phone_calls']:
+            df[col] = df[col].astype(object)
+        target = self._process_target(df)
+        age = self._process_age(df)
+        numerical = self._process_numerical_cols(df)
+        df = pd.concat([target, df], axis=1)
+        df = pd.concat([age, df], axis=1)
+        df = pd.concat([numerical, df], axis=1)
+        return df
+
+
+# class TestDataProcessor:
+
+
+
+
+
+
+

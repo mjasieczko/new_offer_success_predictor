@@ -53,17 +53,13 @@ class DataManager:
         internal method for creating paths for train and test DataFrames
         """
 
-        train_dataset_path = (self.local_path
-                              .joinpath(self.project_path)
-                              .joinpath('train')
-                              .with_suffix(self.csv_suffix))
+        train_test_paths = {df_type: self.local_path
+                                         .joinpath(self.project_path)
+                                         .joinpath(df_type)
+                                         .with_suffix(self.csv_suffix)
+                            for df_type in ['train', 'test']}
 
-        test_dataset_path = (self.local_path
-                             .joinpath(self.project_path)
-                             .joinpath('test')
-                             .with_suffix(self.csv_suffix))
-
-        return train_dataset_path, test_dataset_path
+        return train_test_paths['train'], train_test_paths['test']
 
     def create_train_test(self,
                           df: pd.DataFrame = pd.DataFrame()) -> None:
