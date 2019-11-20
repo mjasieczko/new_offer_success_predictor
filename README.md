@@ -19,5 +19,18 @@ provide list of probabilities for customers on who will accept new offer
 <br> `pip install sklearn`
 <br> `pip install jupyterlab`
 <br> `pip install pyarrow` <- to read .parquet format files
+<br> `pip install matplotlib`
+<br> `pip install seaborn`
+<br> `pip install pytest` <- to list all classess with predict_proba method
+<br> `pip install Cython` <- to list all classess with predict_proba method
+<br> `pip install imblearn` <- to play with balancing the data
+<br> `pip install plotly` <- for more fancy EDA (data scientist friendly)
+<br> `pip install catboost`
+<br> `pip install xgboost`
+<br> `pip install category_encoders`
+<br> `pip install missingno`
+<br> `pip install fancyimpute`
 
 <br> requirements were generated using pip freeze > requirements.txt
+
+
