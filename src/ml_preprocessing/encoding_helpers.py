@@ -3,6 +3,7 @@ from typing import List, DefaultDict, Tuple
 
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
 from sklearn.metrics import recall_score, accuracy_score, confusion_matrix
 from sklearn.model_selection import KFold
 
@@ -170,7 +171,8 @@ class LOOGridSearchCV:
                 model_params[key] = p[counter]
 
             models_parameters.append(model_params.items())
-            clf = self.model.set_params(**model_params)
+            clf = clone(self.model)
+            clf = clf.set_params(**model_params)
 
             cv_accuracies, cv_recalls, cv_cms = ([] for i in range(3))
 
