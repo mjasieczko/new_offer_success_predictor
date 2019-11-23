@@ -4,7 +4,8 @@ from typing import List, DefaultDict, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
-from sklearn.metrics import recall_score, accuracy_score, confusion_matrix
+from sklearn.metrics import roc_auc_score
+# from sklearn.metrics import recall_score, accuracy_score, confusion_matrix
 from sklearn.model_selection import KFold
 
 from .categorical_encoders import LeaveOneOutEncoder
@@ -49,7 +50,9 @@ class LOOGridSearchCV:
         "
         """
 
-        self.processed_train_df = train_df.copy(deep=True)
+        self.processed_train_df = (train_df.copy(deep=True)
+                                   .reset_index()
+                                   .drop(columns='name'))
         self.model = model
         self.params_grid = params_grid
         self.columns_to_encode = columns_to_encode
@@ -66,6 +69,9 @@ class LOOGridSearchCV:
             self.Xs_val = Xs_val
             self.ys_val = ys_val
         self.encoded_df_ = encoded_df
+        # self.best_accuracy_estimator = None
+        # self.best_recall_estimator = None
+        self.best_roc_auc_estimator = None
 
     def _ohe_emails(self) -> pd.DataFrame:
         """
@@ -83,7 +89,7 @@ class LOOGridSearchCV:
                                    .rename(columns=email_ohe_names))
         self.columns_to_drop_from_training.append('emails')
 
-        return self.processed_train_df.copy(deep=True)
+        return self.processed_train_df
 
     def _prepare_train_val_dfs(self):
         """
@@ -94,11 +100,13 @@ class LOOGridSearchCV:
         to compute encoded_df only once, same for validation and train DataFrames
         """
 
-        X = self.processed_train_df.reset_index().drop(columns='name')
-        y = self.processed_train_df[['target']].reset_index().drop(columns='name')
-
         if self.ohe_emails:
-            self.processed_train_df = self._ohe_emails()
+            X = self._ohe_emails()
+        else:
+            X = self.processed_train_df
+            if 'emails' in X.columns:
+                X['emails'] = X['emails'].astype(int)
+        y = self.processed_train_df[['target']]
 
         X.drop(columns=self.columns_to_drop_from_training, inplace=True)
 
@@ -106,7 +114,7 @@ class LOOGridSearchCV:
         to have each sample exactly once in validation set
         """
         kf = KFold(n_splits=self.n_folds, shuffle=False, random_state=None)
-        splits = kf.split(self.processed_train_df)
+        splits = kf.split(X)
 
         dfs_to_mean = []
         for train_index, val_index in splits:
@@ -154,6 +162,15 @@ class LOOGridSearchCV:
             mean_df = mean_df + dfs_to_mean[num]
         self.encoded_df_ = mean_df.divide(self.n_folds - 1)
 
+    def best_roc_auc_estimator_(self, best_roc_auc_estimator):
+        self.best_roc_auc_estimator = best_roc_auc_estimator
+    """ 
+    def best_accuracy_estimator_(self, best_accuracy_estimator):
+        self.best_accuracy_estimator = best_accuracy_estimator
+
+    def best_recall_estimator_(self, best_recall_estimator):
+        self.best_recall_estimator = best_recall_estimator
+    """
     def grid_search(self) -> Tuple[List, List, List, List]:
         """
         performs GridSearchCV
@@ -164,17 +181,19 @@ class LOOGridSearchCV:
         if self.encoded_df_.empty:
             self._prepare_train_val_dfs()
 
-        models_accuracies, models_recalls, models_parameters, models_cms = ([] for i in range(4))
+        models_roc_auc_scores = []
+        # models_accuracies, models_recalls, models_parameters, models_cms = ([] for i in range(4))
         for p in itertools.product(*self.params_grid.values()):
             model_params = self.params_grid.copy()
             for counter, key in enumerate(model_params.keys()):
                 model_params[key] = p[counter]
 
-            models_parameters.append(model_params.items())
+            # models_parameters.append(model_params.items())
             clf = clone(self.model)
             clf = clf.set_params(**model_params)
 
-            cv_accuracies, cv_recalls, cv_cms = ([] for i in range(3))
+            cv_roc_auc_scores = []
+            # cv_accuracies, cv_recalls, cv_cms = ([] for i in range(3))
 
             """
             fitting and predicting for all folds, then scoring them by: 
@@ -183,20 +202,32 @@ class LOOGridSearchCV:
             for index in range(self.n_folds):
                 clf.fit(self.Xs_train[index], self.ys_train[index])
                 predictions = clf.predict(self.Xs_val[index])
-                cv_accuracies.append(accuracy_score(self.ys_val[index], predictions))
-                cv_recalls.append(recall_score(self.ys_val[index], predictions))
-                cv_cms.append(confusion_matrix(self.ys_val[index], predictions))
+                cv_roc_auc_scores.append(roc_auc_score(self.ys_val[index], predictions))
+                # cv_accuracies.append(accuracy_score(self.ys_val[index], predictions))
+                # cv_recalls.append(recall_score(self.ys_val[index], predictions))
+                # cv_cms.append(confusion_matrix(self.ys_val[index], predictions))
 
             """
             final evaluation of scores (means of all folds scores
             for confusion matrix we can get not integer values, please treat this more informative
             than strict - but anyway, as a source of information which model should we choose
             """
-            models_accuracies.append(np.mean(cv_accuracies))
-            models_recalls.append(np.mean(cv_recalls))
-            models_cms.append(np.mean(cv_cms, axis=0))
+            models_roc_auc_scores.append(np.mean(cv_roc_auc_scores))
+            # models_accuracies.append(np.mean(cv_accuracies))
+            # models_recalls.append(np.mean(cv_recalls))
+            # models_cms.append(np.mean(cv_cms, axis=0))
 
-        return models_accuracies, models_parameters, models_recalls, models_cms
+            # if max(models_accuracies) == np.mean(cv_accuracies):
+            #     self.best_accuracy_estimator_(clf)
+
+            # if max(models_recalls) == np.mean(cv_recalls):
+            #     self.best_recall_estimator_(clf)
+            if max(models_roc_auc_scores) == np.mean(cv_roc_auc_scores):
+                self.best_roc_auc_estimator_(clf)
+
+        return models_roc_auc_scores
+
+        # return models_accuracies, models_parameters, models_recalls, models_cms
 
     def processed_train(self):
         """
@@ -204,8 +235,7 @@ class LOOGridSearchCV:
         """
         train = self.processed_train_df.copy(deep=True)
         encoded = self.encoded_df_.copy(deep=True)
-        train = train.reset_index().drop(columns=['name'])
-        train = train.drop(columns=self.columns_to_drop_from_training+self.columns_to_encode)
+        train = train.drop(columns=self.columns_to_encode+['target'])
         processed_train = pd.concat([train, encoded], axis=1)
 
         return processed_train

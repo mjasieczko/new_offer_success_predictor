@@ -30,6 +30,7 @@ provide list of probabilities for customers on who will accept new offer
 <br> `pip install category_encoders`
 <br> `pip install missingno`
 <br> `pip install fancyimpute`
+<br> `pip install shap`
 
 <br> requirements were generated using pip freeze > requirements.txt
 
