@@ -8,6 +8,7 @@ Next steps:
 <br> - do more visualizations (practice it - what is most important - plotly library)
 <br> - try more models
 <br> - try more features (incremental approach to whole process)
+<br> - try balancing training dataset (SMOTE/ SMOTEEN) by over/undersampling
 <br> - try to implement metric:
 <br>  TN as far from 0.5 (for positive class) as possible (close to 0)
 <br>  TP as far from 0.5 (for positive class) as possible (close to 1)
