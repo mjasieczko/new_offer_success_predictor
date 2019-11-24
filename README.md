@@ -25,12 +25,14 @@ provide list of probabilities for customers on who will accept new offer
 <br> `pip install Cython` <- to list all classess with predict_proba method
 <br> `pip install imblearn` <- to play with balancing the data
 <br> `pip install plotly` <- for more fancy EDA (data scientist friendly)
-<br> `pip install catboost`
-<br> `pip install xgboost`
-<br> `pip install category_encoders`
-<br> `pip install missingno`
+<br> `pip install catboost` <-not needed
+<br> `pip install xgboost` <- not needed
+<br> `pip install category_encoders` <- not needed
+<br> `pip install missingno` 
 <br> `pip install fancyimpute`
 <br> `pip install shap`
+<br> `pip install openpyxl` <- not needed
+<br> `pip install xlsxwriter`
 
 <br> requirements were generated using pip freeze > requirements.txt
 
