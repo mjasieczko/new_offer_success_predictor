@@ -4,9 +4,6 @@ from pathlib import Path
 
 import pandas as pd
 
-import sys
-sys.path.insert(0, '/Users/mjasiecz/PycharmProjects/new_offer_success_predictor/src')
-
 from data.data_manager import DataManager
 from data.data_processor import DataProcessor, TestDataProcessor
 from ml_preprocessing.categorical_encoders import LeaveOneOutEncoder
