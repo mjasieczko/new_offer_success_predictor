@@ -1,6 +1,14 @@
 # new_offer_success_predictor
 provide list of probabilities for customers on who will accept new offer 
 
+remarks:
+be sure to change paths in every used function (at this moment there is 
+no added functionality to set this in one place).
+
+run project using:
+python src/app.py
+
+
 **task details**
 <br> You can find it in `data/raw/description.txt` with one small change:
 <br> instead list of customers who will accept new offer I will provide

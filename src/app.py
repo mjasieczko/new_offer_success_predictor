@@ -1,8 +1,6 @@
-from pathlib import Path
-
 import sys
-sys.path.insert(0, '/Users/mjasiecz/PycharmProjects/new_offer_success_predictor/src')
 
+from pathlib import Path
 from application.app_utils import run
 
 
@@ -26,5 +24,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
